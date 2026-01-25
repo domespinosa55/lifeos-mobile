@@ -1,7 +1,9 @@
-// Root Layout
+// Root Layout - 2026 Design System
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { CONFIG } from '../src/constants/config';
+
+const { COLORS } = CONFIG;
 
 export default function RootLayout() {
   return (
@@ -10,15 +12,18 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: CONFIG.COLORS.surface,
+            backgroundColor: COLORS.surface,
           },
-          headerTintColor: CONFIG.COLORS.text,
+          headerTintColor: COLORS.text,
           headerTitleStyle: {
             fontWeight: '600',
           },
+          headerShadowVisible: false,
+          headerBackTitleVisible: false,
           contentStyle: {
-            backgroundColor: CONFIG.COLORS.background,
+            backgroundColor: COLORS.background,
           },
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

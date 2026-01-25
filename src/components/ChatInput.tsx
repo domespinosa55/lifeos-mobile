@@ -1,6 +1,6 @@
-// Chat Input Component
+// Chat Input Component - 2026 Design System
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '../constants/config';
 
@@ -13,6 +13,7 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, onMicPress, disabled, isRecording }: ChatInputProps) {
   const [text, setText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleSend = () => {
     if (text.trim() && !disabled) {
@@ -23,92 +24,140 @@ export function ChatInput({ onSend, onMicPress, disabled, isRecording }: ChatInp
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[styles.micButton, isRecording && styles.micButtonActive]}
-        onPress={onMicPress}
-        disabled={disabled}
-      >
-        <Ionicons
-          name={isRecording ? 'mic' : 'mic-outline'}
-          size={24}
-          color={isRecording ? COLORS.accent : COLORS.text}
-        />
-      </TouchableOpacity>
-      
-      <TextInput
-        style={styles.input}
-        value={text}
-        onChangeText={setText}
-        placeholder="Message LifeOS..."
-        placeholderTextColor={COLORS.textSecondary}
-        multiline
-        maxLength={2000}
-        editable={!disabled}
-        onSubmitEditing={handleSend}
-        blurOnSubmit={false}
-      />
-      
-      <TouchableOpacity
-        style={[styles.sendButton, (!text.trim() || disabled) && styles.sendButtonDisabled]}
-        onPress={handleSend}
-        disabled={!text.trim() || disabled}
-      >
-        <Ionicons
-          name="send"
-          size={20}
-          color={text.trim() && !disabled ? COLORS.text : COLORS.textSecondary}
-        />
-      </TouchableOpacity>
+      {/* Glass background effect */}
+      <View style={styles.inputRow}>
+        <TouchableOpacity
+          style={[
+            styles.micButton, 
+            isRecording && styles.micButtonActive
+          ]}
+          onPress={onMicPress}
+          disabled={disabled}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={isRecording ? 'mic' : 'mic-outline'}
+            size={22}
+            color={isRecording ? '#ffffff' : COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+        
+        <View style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}>
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Message LifeOS..."
+            placeholderTextColor={COLORS.textTertiary}
+            multiline
+            maxLength={2000}
+            editable={!disabled}
+            onSubmitEditing={handleSend}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            blurOnSubmit={false}
+          />
+        </View>
+        
+        <TouchableOpacity
+          style={[
+            styles.sendButton, 
+            text.trim() && !disabled ? styles.sendButtonActive : styles.sendButtonDisabled
+          ]}
+          onPress={handleSend}
+          disabled={!text.trim() || disabled}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="arrow-up"
+            size={20}
+            color={text.trim() && !disabled ? '#ffffff' : COLORS.textTertiary}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const { COLORS } = CONFIG;
+const { COLORS, SPACING, RADIUS } = CONFIG;
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 8,
-    paddingBottom: 24,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderSubtle,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING['2xl'],
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: SPACING.sm,
   },
   micButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-  },
-  micButtonActive: {
-    backgroundColor: COLORS.accent,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: COLORS.text,
-    maxHeight: 120,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  micButtonActive: {
+    backgroundColor: COLORS.error,
+    borderColor: COLORS.error,
+    // Glow effect
+    shadowColor: COLORS.error,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inputContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  inputContainerFocused: {
+    borderColor: COLORS.accent,
+    // Subtle glow when focused
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  input: {
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.md,
+    fontSize: 16,
+    color: COLORS.text,
+    maxHeight: 120,
+    minHeight: 42,
+  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.accent,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+  },
+  sendButtonActive: {
+    backgroundColor: COLORS.accent,
+    // Glow effect
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sendButtonDisabled: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 });

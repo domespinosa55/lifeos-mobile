@@ -1,6 +1,6 @@
-// Chat Bubble Component
+// Chat Bubble Component - 2026 Design System
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { CONFIG } from '../constants/config';
 import type { Message } from '../types';
 
@@ -12,28 +12,50 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   const isUser = message.role === 'user';
   
   return (
-    <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
+    <Animated.View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
         {!isUser && (
-          <Text style={styles.roleLabel}>🤖 LifeOS</Text>
+          <View style={styles.agentHeader}>
+            <View style={styles.agentDot} />
+            <Text style={styles.roleLabel}>LifeOS</Text>
+          </View>
         )}
         <Text style={[styles.content, isUser ? styles.userContent : styles.assistantContent]}>
           {message.content || '...'}
         </Text>
-        <Text style={styles.timestamp}>
+        <Text style={[styles.timestamp, isUser && styles.userTimestamp]}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+// Thinking indicator component
+export function ThinkingIndicator() {
+  return (
+    <View style={[styles.container, styles.assistantContainer]}>
+      <View style={[styles.bubble, styles.assistantBubble, styles.thinkingBubble]}>
+        <View style={styles.agentHeader}>
+          <View style={[styles.agentDot, styles.thinkingDot]} />
+          <Text style={styles.roleLabel}>LifeOS is thinking...</Text>
+        </View>
+        <View style={styles.dotsContainer}>
+          <View style={[styles.dot, { animationDelay: '0ms' }]} />
+          <View style={[styles.dot, { animationDelay: '160ms' }]} />
+          <View style={[styles.dot, { animationDelay: '320ms' }]} />
+        </View>
       </View>
     </View>
   );
 }
 
-const { COLORS } = CONFIG;
+const { COLORS, SPACING, RADIUS } = CONFIG;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 4,
-    marginHorizontal: 12,
+    marginVertical: SPACING.xs,
+    marginHorizontal: SPACING.md,
   },
   userContainer: {
     alignItems: 'flex-end',
@@ -43,38 +65,82 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: '85%',
-    padding: 12,
-    borderRadius: 16,
+    padding: SPACING.md,
+    borderRadius: RADIUS.xl,
   },
   userBubble: {
     backgroundColor: COLORS.accent,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: RADIUS.sm,
+    // Subtle glow effect
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   assistantBubble: {
-    backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 4,
+    backgroundColor: COLORS.surfaceElevated,
+    borderBottomLeftRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  thinkingBubble: {
+    paddingVertical: SPACING.base,
+  },
+  agentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  agentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.agentActive,
+    marginRight: SPACING.xs,
+    // Glow effect
+    shadowColor: COLORS.agentActive,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  thinkingDot: {
+    backgroundColor: COLORS.agentThinking,
+    shadowColor: COLORS.agentThinking,
+  },
   roleLabel: {
-    fontSize: 12,
+    fontSize: CONFIG.FONT_SIZE.xs,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    fontWeight: '500',
   },
   content: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: CONFIG.FONT_SIZE.base,
+    lineHeight: 24,
   },
   userContent: {
-    color: COLORS.text,
+    color: '#ffffff',
   },
   assistantContent: {
     color: COLORS.text,
   },
   timestamp: {
     fontSize: 10,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+    color: COLORS.textTertiary,
+    marginTop: SPACING.xs,
     alignSelf: 'flex-end',
+  },
+  userTimestamp: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: SPACING.xs,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    backgroundColor: COLORS.textTertiary,
+    borderRadius: 4,
   },
 });
