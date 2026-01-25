@@ -2,14 +2,12 @@
 export const CONFIG = {
   // Clawdbot Gateway
   GATEWAY_URL: 'http://129.212.185.219:18789',
-  GATEWAY_WS_URL: 'ws://129.212.185.219:18789',
+  GATEWAY_TOKEN: '46b48210c9fb7e3b4d1aa0c144f2d1623114d31003b5d532',
   
-  // API Endpoints
+  // API Endpoints (OpenAI-compatible)
   API: {
-    SESSIONS: '/api/sessions',
-    SPAWN: '/api/spawn',
-    SEND: '/api/send',
-    EVENTS: '/api/events',
+    CHAT_COMPLETIONS: '/v1/chat/completions',
+    RESPONSES: '/v1/responses',
   },
   
   // Audio Recording

@@ -5,7 +5,7 @@ import { gateway } from '../api/gateway';
 
 interface ChatState {
   messages: Message[];
-  sessionId: string | null;
+  userId: string;
   isLoading: boolean;
   isConnected: boolean;
   error: string | null;
@@ -16,9 +16,23 @@ interface ChatState {
   clearMessages: () => void;
 }
 
+// Generate stable user ID for session continuity
+const generateUserId = () => {
+  const stored = typeof localStorage !== 'undefined' 
+    ? localStorage.getItem('lifeos_user_id') 
+    : null;
+  if (stored) return stored;
+  
+  const newId = `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('lifeos_user_id', newId);
+  }
+  return newId;
+};
+
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  sessionId: null,
+  userId: generateUserId(),
   isLoading: false,
   isConnected: false,
   error: null,
@@ -27,13 +41,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      // Spawn a new session for mobile
-      const { sessionId } = await gateway.spawn({
-        label: 'mobile-chat',
-        channel: 'mobile',
-      });
+      // Test connection with a ping
+      const connected = await gateway.ping();
       
-      set({ sessionId, isConnected: true, isLoading: false });
+      if (connected) {
+        set({ isConnected: true, isLoading: false });
+      } else {
+        set({
+          error: 'Could not connect to gateway',
+          isLoading: false,
+          isConnected: false,
+        });
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to connect',
@@ -44,12 +63,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   sendMessage: async (content: string) => {
-    const { sessionId, messages } = get();
-    
-    if (!sessionId) {
-      set({ error: 'No active session' });
-      return;
-    }
+    const { userId, messages } = get();
 
     // Add user message
     const userMessage: Message = {
@@ -59,7 +73,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: new Date(),
     };
     
-    set({ messages: [...messages, userMessage], isLoading: true });
+    set({ messages: [...messages, userMessage], isLoading: true, error: null });
 
     // Create placeholder for assistant response
     const assistantId = `assistant-${Date.now()}`;
@@ -76,8 +90,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       await gateway.sendAndStream(
-        sessionId,
         content,
+        userId,
         // On chunk
         (text) => {
           set((state) => ({
@@ -90,7 +104,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         },
         // On done
         () => {
-          set({ isLoading: false });
+          set({ isLoading: false, isConnected: true });
         },
         // On error
         (error) => {
