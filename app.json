@@ -15,9 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lifeos.mobile",
+      "bundleIdentifier": "com.harmonicind.ears",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "LifeOS uses your microphone for voice chat and meeting recordings."
+        "NSMicrophoneUsageDescription": "LifeOS uses your microphone for voice chat and meeting recordings.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -25,17 +26,31 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
-      "package": "com.lifeos.mobile",
-      "permissions": ["RECORD_AUDIO"]
+      "package": "com.harmonicind.ears",
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-av"],
+    "plugins": [
+      "expo-router",
+      "expo-av"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "90a2897e-aad9-48d6-b115-533414eb0837"
+      }
+    },
+    "owner": "domespinosa55"
   }
 }

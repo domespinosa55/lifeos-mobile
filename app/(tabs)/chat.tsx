@@ -24,7 +24,7 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const {
     messages,
-    sessionId,
+    userId,
     isLoading,
     isConnected,
     error,
@@ -37,9 +37,7 @@ export default function ChatScreen() {
 
   // Initialize session on mount
   useEffect(() => {
-    if (!sessionId) {
-      initSession();
-    }
+    initSession();
   }, []);
 
   // Auto-scroll to bottom on new messages
@@ -59,8 +57,9 @@ export default function ChatScreen() {
     if (isRecording) {
       const recording = await stopRecording();
       if (recording) {
-        // TODO: Transcribe and send
-        console.log('Recording stopped:', recording.uri);
+        // TODO: Add transcription service
+        console.log('Recording saved:', recording.uri);
+        // For now, show a message that voice is coming soon
       }
     } else {
       await requestPermission();
@@ -136,7 +135,7 @@ export default function ChatScreen() {
       <ChatInput
         onSend={handleSend}
         onMicPress={handleMicPress}
-        disabled={!isConnected || isLoading}
+        disabled={false}
         isRecording={isRecording}
       />
     </KeyboardAvoidingView>

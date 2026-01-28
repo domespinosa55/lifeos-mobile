@@ -1,5 +1,5 @@
-// Profile Screen
-import React from 'react';
+// Profile Screen - With conversation sync
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,71 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '../../src/constants/config';
+import { useConversationStore } from '../../src/stores/conversationStore';
+import { agentsAPI } from '../../src/api/agents';
 
 const { COLORS } = CONFIG;
 
 export default function ProfileScreen() {
+  const [syncing, setSyncing] = useState(false);
+  const { conversations, clearAllConversations, getAllConversationsForDay } = useConversationStore();
+  
+  const conversationCount = Object.keys(conversations).length;
+  const todayConversations = getAllConversationsForDay();
+
+  const handleSyncConversations = async () => {
+    if (todayConversations.length === 0) {
+      Alert.alert('No Conversations', 'No conversations to sync today.');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      for (const convo of todayConversations) {
+        await agentsAPI.syncConversation(
+          convo.agentId,
+          convo.messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp.toString(),
+          }))
+        );
+      }
+      Alert.alert('Synced!', `${todayConversations.length} conversation(s) synced to server.`);
+    } catch (err) {
+      Alert.alert('Sync Failed', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleClearConversations = () => {
+    Alert.alert(
+      'Clear All Conversations?',
+      'This will delete all stored conversations on this device.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear', 
+          style: 'destructive',
+          onPress: () => {
+            clearAllConversations();
+            Alert.alert('Cleared', 'All conversations deleted.');
+          }
+        },
+      ]
+    );
+  };
+
   const SETTINGS_ITEMS = [
     { icon: 'server', label: 'Gateway Connection', value: 'Connected' },
     { icon: 'moon', label: 'Theme', value: 'Dark' },
-    { icon: 'volume-high', label: 'Voice Settings', value: '' },
     { icon: 'notifications', label: 'Notifications', value: '' },
-    { icon: 'key', label: 'API Keys', value: '' },
     { icon: 'information-circle', label: 'About', value: 'v1.0.0' },
   ];
 
@@ -33,11 +85,11 @@ export default function ProfileScreen() {
         {/* User Card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={32} color={COLORS.text} />
+            <Text style={styles.avatarText}>DE</Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>LifeOS User</Text>
-            <Text style={styles.userEmail}>Connected to Gateway</Text>
+            <Text style={styles.userName}>Dom Espinosa</Text>
+            <Text style={styles.userEmail}>Connected to LifeOS</Text>
           </View>
         </View>
 
@@ -51,14 +103,49 @@ export default function ProfileScreen() {
             </View>
           </View>
           <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>URL</Text>
-            <Text style={styles.statusUrl}>{CONFIG.GATEWAY_URL}</Text>
+            <Text style={styles.statusLabel}>Active Agents</Text>
+            <Text style={styles.statusText}>{conversationCount}</Text>
           </View>
+        </View>
+
+        {/* Conversation Sync Section */}
+        <View style={styles.syncSection}>
+          <Text style={styles.sectionTitle}>Conversations</Text>
+          
+          <View style={styles.syncInfo}>
+            <Ionicons name="chatbubbles" size={20} color={COLORS.accent} />
+            <Text style={styles.syncInfoText}>
+              {todayConversations.length} conversation(s) today
+            </Text>
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.syncButton, syncing && styles.syncButtonDisabled]}
+            onPress={handleSyncConversations}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <ActivityIndicator size="small" color={COLORS.text} />
+            ) : (
+              <Ionicons name="cloud-upload" size={20} color={COLORS.text} />
+            )}
+            <Text style={styles.syncButtonText}>
+              {syncing ? 'Syncing...' : 'Sync to Server'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.clearButton}
+            onPress={handleClearConversations}
+          >
+            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+            <Text style={styles.clearButtonText}>Clear Local History</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Settings List */}
         <View style={styles.settingsList}>
-          {SETTINGS_ITEMS.map((item, index) => (
+          {SETTINGS_ITEMS.map((item) => (
             <TouchableOpacity key={item.label} style={styles.settingsItem}>
               <Ionicons name={item.icon as any} size={22} color={COLORS.accent} />
               <Text style={styles.settingsLabel}>{item.label}</Text>
@@ -73,8 +160,8 @@ export default function ProfileScreen() {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appName}>LifeOS Mobile</Text>
-          <Text style={styles.appVersion}>Version 1.0.0 (Phase 1)</Text>
-          <Text style={styles.appBuild}>Built with Expo + React Native</Text>
+          <Text style={styles.appVersion}>Version 1.0.0</Text>
+          <Text style={styles.appBuild}>Connected to Clawdbot Gateway</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -104,37 +191,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
   userInfo: {
     marginLeft: 16,
+    flex: 1,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
   },
   userEmail: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
   },
   statusCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -161,20 +254,73 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: COLORS.success,
-    fontWeight: '500',
+    color: COLORS.text,
   },
   statusUrl: {
     fontSize: 12,
     color: COLORS.textSecondary,
     fontFamily: 'monospace',
   },
+  syncSection: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  syncInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  syncInfoText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
+  },
+  syncButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    color: COLORS.error,
+  },
   settingsList: {
     backgroundColor: COLORS.surface,
     borderRadius: 12,
-    overflow: 'hidden',
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    overflow: 'hidden',
   },
   settingsItem: {
     flexDirection: 'row',
@@ -195,8 +341,7 @@ const styles = StyleSheet.create({
   },
   appInfo: {
     alignItems: 'center',
-    marginTop: 32,
-    padding: 20,
+    paddingVertical: 24,
   },
   appName: {
     fontSize: 16,
@@ -204,13 +349,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   appVersion: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 4,
   },
   appBuild: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 8,
+    color: COLORS.textTertiary,
+    marginTop: 2,
   },
 });

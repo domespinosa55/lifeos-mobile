@@ -1,7 +1,10 @@
-// Chat Store - Zustand state management
+// Chat Store - Main chat (synced with Main Agent)
 import { create } from 'zustand';
 import type { Message } from '../types';
 import { gateway } from '../api/gateway';
+import { useConversationStore } from './conversationStore';
+
+const MAIN_AGENT_ID = 'main';
 
 interface ChatState {
   messages: Message[];
@@ -14,56 +17,30 @@ interface ChatState {
   initSession: () => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
+  loadFromConversationStore: () => void;
 }
-
-// Generate stable user ID for session continuity
-const generateUserId = () => {
-  const stored = typeof localStorage !== 'undefined' 
-    ? localStorage.getItem('lifeos_user_id') 
-    : null;
-  if (stored) return stored;
-  
-  const newId = `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('lifeos_user_id', newId);
-  }
-  return newId;
-};
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  userId: generateUserId(),
+  userId: 'dom',
   isLoading: false,
   isConnected: false,
   error: null,
 
   initSession: async () => {
-    try {
-      set({ isLoading: true, error: null });
-      
-      // Test connection with a ping
-      const connected = await gateway.ping();
-      
-      if (connected) {
-        set({ isConnected: true, isLoading: false });
-      } else {
-        set({
-          error: 'Could not connect to gateway',
-          isLoading: false,
-          isConnected: false,
-        });
-      }
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Failed to connect',
-        isLoading: false,
-        isConnected: false,
-      });
-    }
+    // Load existing messages from conversation store
+    get().loadFromConversationStore();
+    set({ isConnected: true, isLoading: false, error: null });
+  },
+
+  loadFromConversationStore: () => {
+    const storedMessages = useConversationStore.getState().getMessages(MAIN_AGENT_ID);
+    set({ messages: storedMessages });
   },
 
   sendMessage: async (content: string) => {
     const { userId, messages } = get();
+    const conversationStore = useConversationStore.getState();
 
     // Add user message
     const userMessage: Message = {
@@ -73,7 +50,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: new Date(),
     };
     
+    // Update local state and persist
     set({ messages: [...messages, userMessage], isLoading: true, error: null });
+    conversationStore.addMessage(MAIN_AGENT_ID, userMessage);
 
     // Create placeholder for assistant response
     const assistantId = `assistant-${Date.now()}`;
@@ -89,37 +68,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
-      await gateway.sendAndStream(
-        content,
-        userId,
-        // On chunk
-        (text) => {
-          set((state) => ({
-            messages: state.messages.map((m) =>
-              m.id === assistantId
-                ? { ...m, content: m.content + text }
-                : m
-            ),
-          }));
-        },
-        // On done
-        () => {
-          set({ isLoading: false, isConnected: true });
-        },
-        // On error
-        (error) => {
-          set({ error, isLoading: false });
-        }
-      );
+      // Use non-streaming for React Native compatibility
+      const response = await gateway.send(content, userId);
+      
+      // Update with response
+      const finalAssistantMessage: Message = {
+        ...assistantMessage,
+        content: response,
+      };
+
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.id === assistantId ? finalAssistantMessage : m
+        ),
+        isLoading: false,
+        isConnected: true,
+      }));
+
+      // Persist assistant message
+      conversationStore.addMessage(MAIN_AGENT_ID, finalAssistantMessage);
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to send message',
         isLoading: false,
       });
+      
+      // Remove empty assistant message on error
+      set((state) => ({
+        messages: state.messages.filter((m) => m.id !== assistantId),
+      }));
     }
   },
 
   clearMessages: () => {
+    useConversationStore.getState().clearConversation(MAIN_AGENT_ID);
     set({ messages: [], error: null });
   },
 }));

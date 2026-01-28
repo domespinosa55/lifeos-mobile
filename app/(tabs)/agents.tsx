@@ -1,4 +1,4 @@
-// Agents Screen - View and manage AI agents
+// Agents Screen - View and chat with AI agents
 import React, { useState } from 'react';
 import {
   View,
@@ -9,82 +9,44 @@ import {
   SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '../../src/constants/config';
-import type { Agent } from '../../src/types';
+import { AGENT_CONFIGS, type AgentConfig } from '../../src/api/agents';
 
 const { COLORS } = CONFIG;
 
-// Placeholder agents
-const MOCK_AGENTS: Agent[] = [
-  {
-    id: '1',
-    name: 'Main Agent',
-    status: 'idle',
-    description: 'Your primary AI assistant',
-    lastMessage: 'Ready to help',
-  },
-  {
-    id: '2',
-    name: 'Head of Product',
-    status: 'idle',
-    description: 'Product development and UI',
-    lastMessage: 'Standing by',
-  },
-  {
-    id: '3',
-    name: 'DealOS Analyst',
-    status: 'working',
-    description: 'CRE deal analysis',
-    lastMessage: 'Analyzing Project Apex...',
-  },
-];
-
-const STATUS_COLORS = {
-  idle: COLORS.success,
-  working: COLORS.accent,
-  completed: COLORS.textSecondary,
-  error: COLORS.error,
-};
-
-const STATUS_LABELS = {
-  idle: 'Idle',
-  working: 'Working',
-  completed: 'Done',
-  error: 'Error',
-};
-
 export default function AgentsScreen() {
-  const [agents, setAgents] = useState<Agent[]>(MOCK_AGENTS);
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: Fetch agents from gateway
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     setRefreshing(false);
   };
 
-  const renderAgent = (agent: Agent) => (
-    <TouchableOpacity key={agent.id} style={styles.agentCard}>
+  const handleAgentPress = (agent: AgentConfig) => {
+    router.push(`/agent/${agent.id}`);
+  };
+
+  const renderAgent = (agent: AgentConfig) => (
+    <TouchableOpacity 
+      key={agent.id} 
+      style={styles.agentCard}
+      onPress={() => handleAgentPress(agent)}
+      activeOpacity={0.7}
+    >
       <View style={styles.agentHeader}>
-        <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[agent.status] }]} />
-        <Text style={styles.agentName}>{agent.name}</Text>
-        <Text style={styles.statusLabel}>{STATUS_LABELS[agent.status]}</Text>
-      </View>
-      
-      {agent.description && (
-        <Text style={styles.agentDescription}>{agent.description}</Text>
-      )}
-      
-      {agent.lastMessage && (
-        <View style={styles.lastMessage}>
-          <Ionicons name="chatbubble-outline" size={14} color={COLORS.textSecondary} />
-          <Text style={styles.lastMessageText} numberOfLines={1}>
-            {agent.lastMessage}
+        <Text style={styles.agentEmoji}>{agent.emoji || '🤖'}</Text>
+        <View style={styles.agentInfo}>
+          <Text style={styles.agentName}>{agent.name}</Text>
+          <Text style={styles.agentDescription} numberOfLines={2}>
+            {agent.description}
           </Text>
         </View>
-      )}
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+      </View>
     </TouchableOpacity>
   );
 
@@ -107,29 +69,29 @@ export default function AgentsScreen() {
           />
         }
       >
+        {/* Quick Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{agents.filter((a) => a.status === 'working').length}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statNumber}>{AGENT_CONFIGS.length}</Text>
+            <Text style={styles.statLabel}>Agents</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{agents.filter((a) => a.status === 'idle').length}</Text>
-            <Text style={styles.statLabel}>Idle</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{agents.length}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.statNumber}>∞</Text>
+            <Text style={styles.statLabel}>Sub-agents</Text>
           </View>
         </View>
 
+        {/* Agents List */}
+        <Text style={styles.sectionTitle}>Your Agents</Text>
         <View style={styles.agentList}>
-          {agents.map(renderAgent)}
+          {AGENT_CONFIGS.map(renderAgent)}
         </View>
 
+        {/* Info Card */}
         <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color={COLORS.textSecondary} />
+          <Ionicons name="sparkles" size={20} color={COLORS.accent} />
           <Text style={styles.infoText}>
-            Agents run on your Clawdbot Gateway. Tap an agent to view its conversation.
+            Each agent has a specialized focus. The Main Agent can spawn sub-agents for complex tasks.
           </Text>
         </View>
       </ScrollView>
@@ -169,7 +131,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
@@ -190,12 +152,20 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 4,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   agentList: {
     gap: 12,
   },
   agentCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -203,58 +173,39 @@ const styles = StyleSheet.create({
   agentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  agentEmoji: {
+    fontSize: 32,
+  },
+  agentInfo: {
+    flex: 1,
   },
   agentName: {
-    flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text,
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
   },
   agentDescription: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: 8,
-  },
-  lastMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  lastMessageText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 12,
     backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
-    marginTop: 20,
+    marginTop: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.accent + '40',
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 });
