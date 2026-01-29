@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+spawn eas build --platform ios --profile production
+
+expect {
+    "Do you want to log in to your Apple account?" {
+        send "y\r"
+        exp_continue
+    }
+    -re "Apple ID.*:.*›" {
+        # Wait for prompt to be ready, then send email
+        sleep 0.3
+        send "domespinosa55@gmail.com\r"
+        exp_continue
+    }
+    -re "Password.*:.*›" {
+        sleep 0.3
+        send "Casa6036Martel\r"
+        exp_continue
+    }
+    "verification code" {
+        # If 2FA is required, this will need manual input
+        interact
+    }
+    eof
+}
+

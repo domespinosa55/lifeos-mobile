@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+spawn eas submit --platform ios
+
+expect {
+    "What would you like to submit?" {
+        send "latest\r"
+        exp_continue
+    }
+    "Select a build" {
+        send "\r"
+        exp_continue
+    }
+    "Would you like to create one?" {
+        send "y\r"
+        exp_continue
+    }
+    "App name" {
+        send "LifeOS\r"
+        exp_continue
+    }
+    "Primary language" {
+        send "English\r"
+        exp_continue
+    }
+    "Bundle identifier" {
+        send "com.harmonicind.ears\r"
+        exp_continue
+    }
+    -re "Apple ID.*:" {
+        # Clear any pre-filled text (backspace many times) and send correct email
+        send "\003"  # Ctrl+C to clear
+        sleep 0.2
+        send "\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177\177"  # Backspace many times
+        sleep 0.2
+        send "domespinosa55@gmail.com\r"
+        exp_continue
+    }
+    -re "Password.*:" {
+        send "Casa6036Martel\r"
+        exp_continue
+    }
+    "App Store Connect API Key" {
+        # If it asks for API key, we might need to skip or provide it
+        send "\r"
+        exp_continue
+    }
+    "verification code" {
+        # If 2FA is required, this will need manual input
+        interact
+    }
+    eof
+}
+
