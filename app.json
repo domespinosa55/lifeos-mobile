@@ -18,6 +18,8 @@
       "bundleIdentifier": "com.harmonicind.ears",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "LifeOS uses your microphone for voice chat and meeting recordings.",
+        "NSSpeechRecognitionUsageDescription": "LifeOS uses speech recognition to transcribe your voice messages.",
+        "NSPhotoLibraryUsageDescription": "LifeOS may access your photo library to attach images to conversations.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
