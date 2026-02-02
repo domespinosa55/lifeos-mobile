@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '../../src/constants/config';
 import { RecordButton } from '../../src/components/RecordButton';
+import { CalendarWidget } from '../../src/components/CalendarWidget';
 import { useAudioStore } from '../../src/stores/audioStore';
 
 const { COLORS } = CONFIG;
@@ -62,6 +63,12 @@ export default function HomeScreen() {
             <Ionicons name="recording" size={28} color={COLORS.accent} />
             <Text style={styles.actionLabel}>Record Meeting</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Calendar Widget */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Calendar</Text>
+          <CalendarWidget />
         </View>
 
         {/* Recording Control */}
